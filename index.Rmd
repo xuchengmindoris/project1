@@ -25,8 +25,18 @@ tidy=TRUE, tidy.opts=list(width.cutoff=60), R.options=list(max.print=100))
 
 Paragraph or two introducing your datasets and variables, why they are interesting to you, etc.
 
+Introduction:
+
+  In the United States, high divorce rates have already become a serious social concern. A current statistic indicates that almost 50% of all marriages in America will end in divorce or separation. Actually, high divorce rates can bring disasters on not only personal levels but also national levels.Studies find that the children from divorced families are more likely to exhibit issues including academic, behavioral, and psychological problems than those from non-divorced families. Meanwhile, divorce would undermine the growth of the U.S. economy since marriage takes account for around 30% of the human capital contribution of household heads to macro-economic growth and it has a “remarkably large” accruing effect on a worker’s productivity while divorce eliminate it.Hence, the factors resulted in divorce catch me, an economics student's attention and interest to find the relationship between these variables by using databases.
+  
+  This project is focusing on the data of 2018 and they contain 18 variables which are intuitively related to divorce. The variables include "State", "Divorce Rate"," Median Housing Price","Median household income", "Poverty", "Unemployment Rate", "Fertility Rate", "Education Rate", "Region", "race distribution"(% White, % Asian, % Black,% Other races), "highly religious rate", and "Local GDP". The datasets are accessible at U.S. Bureau of Labor Statistics(www.bls.gov)and U.S. Census Bureau(www.census.gov).
+
 ```{R}
 # read your datasets in here, e.g., with read_csv()
+library(readr)
+GDP <- read_csv("GDP.csv")
+Main_Information <- read_csv("Main Information.csv")
+Race <- read_csv("Race.csv")
 
 ```
 
@@ -35,57 +45,413 @@ Paragraph or two introducing your datasets and variables, why they are interesti
 If your datasets are tidy already, demonstrate that you can reshape data with pivot wider/longer here (e.g., untidy and then retidy). Alternatively, it may be easier to wait until the wrangling section so you can reshape your summary statistics. Note here if you are going to do this.
 
 ```{R}
-# your tidying code (if applicable; can also wait until wrangling section)
+
+library(tidyverse)
+TidyGDP_quarter<-GDP%>% 
+  separate("2018_Quarter",into = c(NA,"quarter"),sep="_")%>%
+  pivot_wider(names_from="quarter",values_from="Quarterly GDP_Millions_of_Dollars")
+TidyGDP_quarter
+
 ```
+Discussion:
+I reshape one of my datasets called"GDP". First, I tidy up the notation of the quarter (e.g. "2018_Q1" to "Q1")by using "separate()" function because all of data I use in this project is from 2018. Then I reshape the dataset by using "pivot_wider" to make the variable name as "quarter", and the values are corresponding GDP of each quarter for each state.
 
     
 #### Joining/Merging
 
 ```{R}
 # your joining code
-
-# your joining code
+library(dplyr)
+joint<-Main_Information %>% 
+  inner_join(TidyGDP_quarter,by="State")%>%
+  left_join(Race,by="State")
 ```
+Discussion:
+Now I join all my datasets together by "State".
 
-Discussions of joining here. Feel encouraged to break up into more than once code chunk and discuss each in turn.
+
+```{R}
+# Calculations (No.Observations)
+GDP%>%summarise(GDP_number_observation=n(),GDP_unique_State=length(unique(GDP$State)))
+Main_Information%>%summarise(Main_Information_number_observation=n(),Main_Information_unique_State=length(unique(Main_Information$State)))
+TidyGDP_quarter%>%summarise(TidyGDP_quarter_number_observation=n(),TidyGDP_quarter_unique_State=length(unique(TidyGDP_quarter$State)))
+Race%>%summarise(Race_number_observation=n(),Race_unique_State=length(unique(Race$State)))
+joint%>%summarise(joint_number_observation=n(),joint_unique_State=length(unique(joint$State)))
+
+```
+Discussion:
+"GDP"dataset has 204 observations and 31 unique IDs(states)
+"Main_Information"dataset has 52 observations and 52 unique IDs(states)
+"TidyGDP_quarter"dataset has 51 observations and 51 unique IDs(states)
+"Race"dataset has 52 observations and 52 unique IDs(states)
+"joint"dataset has 51 observations and 51 unique IDs(states)
+
+
+```{R}
+#Calculations(No. and what IDs are/is in one dataset but not in another-Main_Information)
+Main_Information%>%anti_join(TidyGDP_quarter)%>%select(1)
+Main_Information%>%anti_join(TidyGDP_quarter)%>%select(1)%>%nrow()
+Main_Information%>%anti_join(joint)%>%select(1)
+Main_Information%>%anti_join(joint)%>%select(1)%>%nrow()
+```
+Discussion:
+There is one ID(state) that appears in dataset"Main_Information" but not in both dataset"TidyGDP_quarter" and dataset"joint". It is Puerto Rico.
+
+
+```{R}
+#Calculations(No. and what IDs are/is in one dataset but not in another-Race)
+Race%>%anti_join(TidyGDP_quarter,by = "State")%>%select(1)
+Race%>%anti_join(TidyGDP_quarter,by = "State")%>%select(1)%>%nrow()
+Race%>%anti_join(joint,by = "State")%>%select(1)
+Race%>%anti_join(joint,by = "State")%>%select(1)%>%nrow()
+```
+Discussion:
+there is one ID(state) that in the dataset"Race" but not in both dataset"joint" and dataset"TidyGDP_quarter".It is Puerto Rico.
+
+```{R}
+#Calculations(No. and what IDs are/is in one dataset but not in another-TidyGDP_quarter)
+TidyGDP_quarter%>%anti_join(Main_Information,by = "State")%>%select(1)
+TidyGDP_quarter%>%anti_join(Main_Information,by = "State")%>%select(1)%>%nrow()
+TidyGDP_quarter%>%anti_join(Race,by = "State")%>%select(1)
+TidyGDP_quarter%>%anti_join(Race,by = "State")%>%select(1)%>%nrow()
+```
+Discussion: 
+there is no ID that appears in dataset"TidyGDP_quarter" but not in both dataset"Main_Information" and dataset"Race".
+
+
+```{R}
+#Calculations(No. and what IDs are/is in one dataset)
+Main_Information%>%anti_join(Race,by = "State")%>%select(1)
+Race%>%anti_join(Main_Information,by = "State")%>%select(1)
+TidyGDP_quarter%>%anti_join(Main_Information,by = "State")%>%select(1)
+```
+Discussion:
+there is no ID that in dataset"Main_Information" but not in dataset "race", in dataset "race" but not in dataset "Main_Information", in dataset"TidyGDP_quarter" but in dataset"Main_Information".
+
+
+```{R}
+#Calculations(No.Common ID)
+length(joint$State)
+```
+Discussions: 
+There are 51 states in common for all the datasets in this project.There are 52 observations for dataset "Main_Information" and dataset" Race" while we only have 51 observations in the joined dataset, which means that we dropped one observation(state). Althoulgh this state is always not be counted within the U.S statistics, the potential problem is that the dataset could not precisely represent 2019 U.S situation and our analysis and conclusion may not very precise.
 
 ####  Wrangling
 
 ```{R}
-# your wrangling code
+# your wrangling code 1
+library(dplyr)
+joint_more<-joint%>%group_by(State)%>%mutate(Anual_GDP=sum(Q1,Q2,Q3,Q4))
+joint_more%>%arrange(desc(Anual_GDP))
+joint_more%>%group_by(Region)%>%summarise(total=n())%>%filter(total==max(total))%>%select(Region)
 
-# your wrangling code
-
-# your wrangling code
 ```
 
-Your discussion of wrangling section here. Feel encouraged to break up into more than once code chunk and discuss each in turn.
+Discussion:
+Here, I rewrite joint_more by creating a new variable called"Anual_GDP" because data for all other variables are year-based. Then we find the state with highest anual GDP is California and the region where accommodates the greatest number of states is south region.
+
+
+```{R}
+# your wrangling code 2
+library(stringr)
+joint_more<-joint_more%>%mutate(Region=str_replace(Region,"S","South"))%>%
+  mutate(Region=str_replace(Region,"W","West"))%>%
+  mutate(Region=str_replace(Region,"Mw","Midwest"))%>%
+  mutate(Region=str_replace(Region,"Ne","Northeast"))
+joint_more %>% distinct(State) %>% filter(str_detect(State,"(.)\\1"))
+
+```
+Discussion:Now I improve my dataset (get new dataset called joint_more) by rewriting form of the region names(from "W" to "West, from "Mw" to "Midwest", from "Ne" to "Northeast", and from "S"to"South"). Then we may be curious about which states have the repeated letters in their names (we find:Connecticut,Hawaii,Illinois,Massachusetts,Minnesota etc.)			
+
+
+```{R}
+# your wrangling code 3 (With group_by)
+
+library(dplyr)
+joint_more%>%group_by(Region)%>%na.omit()%>%
+  summarise(mean_income=mean(`Median Household Income ,$`),
+            sd_income=sd(`Median Household Income ,$`),
+            var_income=var(`Median Household Income ,$`),
+            min_income=min(`Median Household Income ,$`),
+            max_income=max(`Median Household Income ,$`),
+            maxmin_income=(max_income+min_income)/2)
+```
+Discussion:Here, we find the mean, standard deviation, variance,minimum, maximum,the mean of maximum and minimum of income for each region. Northeast region had largest mean(68254.88), minimum(55602), and mean of maximum(83242) and minimum of income(68671.0) compared with other regions.
+
+
+
+```{R}
+library(gt)
+joint_more%>%group_by(Region)%>%na.omit()%>%
+  summarise(mean_fertility=mean(`Fertility Rate,%`),
+            sd_fertility=sd(`Fertility Rate,%`),
+            var_fertility=var(`Fertility Rate,%`),
+            min_fertility=min(`Fertility Rate,%`),
+            max_fertility=max(`Fertility Rate,%`),
+            maxmin_fertility=(max_fertility+min_fertility)/2)%>%
+  gt %>%tab_header(title=md("**Fertility Summary Statistics**"),
+             subtitle=md("A table of my summary statistics")) %>%
+  tab_spanner(label="Fertility Related Variables", columns=c("mean_fertility","sd_fertility","var_fertility","min_fertility","max_fertility","maxmin_fertility"))
+```
+Discussion:
+Here, we find the mean, standard deviation, variance,minimum, maximum,the mean of maximum and minimum of fertility rate for each region. Midwest region had largest mean(63.85833	)and minimum (57.5) of fertility rate compared with other regions.
+
+
+```{R}
+joint_more%>%group_by(Region)%>%na.omit()%>%
+  summarise(mean_divorce=mean(`Divorce Rate,%`),
+            sd_divorce=sd(`Divorce Rate,%`),
+            var_divorce=var(`Divorce Rate,%`),
+            min_divorce=min(`Divorce Rate,%`),
+            max_divorce=max(`Divorce Rate,%`),
+            maxmin_divorce=(max_divorce+min_divorce)/2)%>%
+  gt %>%tab_header(title=md("**Divorce Rate Summary Statistics**"),
+             subtitle=md("A table of my summary statistics")) %>%
+  tab_spanner(label="Divorce Related Variables", columns=c("mean_divorce","sd_divorce","var_divorce","min_divorce","max_divorce","maxmin_divorce"))
+```
+Discussion:
+Here, we find the mean, standard deviation, variance,minimum, maximum,the mean of maximum and minimum of divorce rate for each region. South region had the largest mean(9.026667),minimum(7.4),maximum(13.0), and mean of maximum and minimum (10.20) of divorce rates among the 4 regions.
+
+```{R}
+joint_more%>%group_by(Region)%>%na.omit()%>%
+  summarise(mean_Housingprice=mean(`Housing Price,$`),
+            sd_Housingprice=sd(`Housing Price,$`),
+            var_Housingprice=var(`Housing Price,$`),
+            min_Housingprice=min(`Housing Price,$`),
+            max_Housingprice=max(`Housing Price,$`),
+            maxmin_housingprice=(max_Housingprice+min_Housingprice)/2)
+```
+Discussion:
+Here, we find the mean, standard deviation, variance,minimum, maximum,the mean of maximum and minimum of housing price for each region. West region had largest mean(304850.0), standard deviation(120422.06) ,variance(14501473462), maximum(615300),and mean of maximum and minimum(393350) of housimg price among the 4 regions.
+
+
+```{R}
+joint_more%>%group_by(Region)%>%na.omit()%>%
+  summarise(mean_unemployment=mean(`Unemployment Rate,%`),
+            sd_unemployment=sd(`Unemployment Rate,%`),
+            var_unemployment=var(`Unemployment Rate,%`),
+            min_unemployment=min(`Unemployment Rate,%`),
+            max_unemployment=max(`Unemployment Rate,%`),
+            maxmin_unemployment=(max_unemployment+min_unemployment)/2)
+```
+Discussion:
+Here, we find the mean, standard deviation, variance,minimum, maximum,the mean of maximum and minimum of unemployment rate for each region. West region had the largest mean(4.092857),standard deviation(1.0447409), variance(1.0914835	), maximum(6.6), and the mean of maximum and minimum(4.50) of unemployment rate among the four regions.
+
+
+
+```{R}
+joint_more%>%group_by(Region)%>%na.omit()%>%
+  summarise(mean_religious=mean(`Highly Religious Rate,%`),
+            sd_religious=sd(`Highly Religious Rate,%`),
+            var_religious=var(`Highly Religious Rate,%`),
+            min_religious=min(`Highly Religious Rate,%`),
+            max_religious=max(`Highly Religious Rate,%`),
+            maxmin_religious=(max_religious+min_religious)/2)
+```
+Discussion:
+Here, we find the mean, standard deviation, variance,minimum, maximum,the mean of maximum and minimum of highly religious rate for each region. South region had the largest mean,maximum, and the mean of maximum and minimum of highlt-religious rate among the 4 regions.
+
+
+
+```{R}
+joint_more%>%group_by(Region)%>%na.omit()%>%
+  summarise(mean_GDP=mean(Anual_GDP),
+            sd_GDP=sd(Anual_GDP),
+            var_GDP=var(Anual_GDP),
+            min_GDP=min(Anual_GDP),
+            max_GDP=max(Anual_GDP),
+            maxmin_GDP=(max_GDP+min_GDP)/2)
+```
+Discussion:Here, we find the mean, standard deviation, variance,minimum, maximum,the mean of maximum and minimum of  Anual GDP for each region. West region had the largest standard deviation,variance, maximum, and the mean of maximum and minimum of anual GDP among the 4 regions.
+
+
+
+```{R}
+joint_more%>%group_by(Region)%>%na.omit()%>%
+  summarise(mean_education=mean(`Education Rate, %`),
+            sd_education=sd(`Education Rate, %`),
+            var_education=var(`Education Rate, %`),
+            min_education=min(`Education Rate, %`),
+            max_education=max(`Education Rate, %`),
+            maxmin_education=(max_education+min_education)/2)
+```
+Discussion:
+Here, we find the mean, standard deviation, variance,minimum, maximum,the mean of maximum and minimum of Education Rate for each region. Midwest region had the largest mean , minimum and the mean of maximum and minimum of eduacation rate among the 4 regions.
+
+
+
+```{R}
+joint_more%>%group_by(Region)%>%na.omit()%>%
+  summarise(mean_white=mean(`White,%`),
+            sd_white=sd(`White,%`),
+            var_white=var(`White,%`),
+            min_white=min(`White,%`),
+            max_white=max(`White,%`),
+            maxmin_white=(max_white+min_white)/2)
+```
+Discussion:
+Here, we find the mean, standard deviation, variance,minimum, maximum,the mean of maximum and minimum of percentage of white people for each region. Midwest region had the largest mean,minimum,maximum, and the mean of maximum and minimum of the white people percentage among the 4 regions.
+
+
+
+```{R}
+joint_more%>%group_by(Region)%>%na.omit()%>%
+  summarise(mean_black=mean(`Black,%`),
+            sd_black=sd(`Black,%`),
+            var_black=var(`Black,%`),
+            min_black=min(`Black,%`),
+            max_black=max(`Black,%`),
+            maxmin_black=(max_black+min_black)/2)
+```
+Discussion:
+Here, we find the mean, standard deviation, variance,minimum, maximum,the mean of maximum and minimum of percentage of black people for each region.South had the largest mean,standard devistion, variance ,minimum,maximum,the mean of maximum and minimum of black people percentage among the 4 regions.
+
+
+
+```{R}
+# your wrangling code 4 (Without group_by)
+
+joint_more%>%na.omit()%>%
+  summarise(mean_income=mean(`Median Household Income ,$`),
+            q_income=quantile(`Median Household Income ,$`),
+            distinct_income=n_distinct(`Median Household Income ,$`),
+            min_income=min(`Median Household Income ,$`),
+            max_income=max(`Median Household Income ,$`),
+            maxmin_income=(max_income+min_income)/2)
+
+joint_more%>%na.omit()%>%
+  summarise(mean_fertility=mean(`Fertility Rate,%`),
+            q_fertility=quantile(`Fertility Rate,%`),
+            distinct_fertility=n_distinct(`Fertility Rate,%`),
+            min_fertility=min(`Fertility Rate,%`),
+            max_fertility=max(`Fertility Rate,%`),
+            maxmin_fertility=(max_fertility+min_fertility)/2)
+
+joint_more%>%na.omit()%>%
+  summarise(mean_divorce=mean(`Divorce Rate,%`),
+            q_divorce=quantile(`Divorce Rate,%`),
+            distinct_divorce=n_distinct(`Divorce Rate,%`),
+            min_divorce=min(`Divorce Rate,%`),
+            max_divorce=max(`Divorce Rate,%`),
+            maxmin_divorce=(max_divorce+min_divorce)/2)
+
+joint_more%>%na.omit()%>%
+  summarise(mean_Housingprice=mean(`Housing Price,$`),
+            q_Housingprice=quantile(`Housing Price,$`),
+            distinct_Housingprice=n_distinct(`Housing Price,$`),
+            min_Housingprice=min(`Housing Price,$`),
+            max_Housingprice=max(`Housing Price,$`),
+            maxmin_housingprice=(max_Housingprice+min_Housingprice)/2)
+
+joint_more%>%na.omit()%>%
+  summarise(mean_unemployment=mean(`Unemployment Rate,%`),
+            q_unemployment=quantile(`Unemployment Rate,%`),
+            distinct_unemployment=n_distinct(`Unemployment Rate,%`),
+            min_unemployment=min(`Unemployment Rate,%`),
+            max_unemployment=max(`Unemployment Rate,%`),
+            maxmin_unemployment=(max_unemployment+min_unemployment)/2)
+
+joint_more%>%na.omit()%>%
+  summarise(mean_religious=mean(`Highly Religious Rate,%`),
+            q_religious=quantile(`Highly Religious Rate,%`),
+            distinct_religious=n_distinct(`Highly Religious Rate,%`),
+            min_religious=min(`Highly Religious Rate,%`),
+            max_religious=max(`Highly Religious Rate,%`),
+            maxmin_religious=(max_religious+min_religious)/2)
+
+joint_more%>%na.omit()%>%
+  summarise(mean_GDP=mean(Anual_GDP),
+            q_GDP=quantile(Anual_GDP),
+            distinct_GDP=n_distinct(Anual_GDP),
+            min_GDP=min(Anual_GDP),
+            max_GDP=max(Anual_GDP),
+            maxmin_GDP=(max_GDP+min_GDP)/2)
+
+joint_more%>%na.omit()%>%
+  summarise(mean_education=mean(`Education Rate, %`),
+            q_education=quantile(`Education Rate, %`),
+            distinct_education=n_distinct(`Education Rate, %`),
+            min_education=min(`Education Rate, %`),
+            max_education=max(`Education Rate, %`),
+            maxmin_education=(max_education+min_education)/2)
+
+joint_more%>%na.omit()%>%
+  summarise(mean_white=mean(`White,%`),
+            q_white=quantile(`White,%`),
+            distinct_white=n_distinct(`White,%`),
+            min_white=min(`White,%`),
+            max_white=max(`White,%`),
+            maxmin_white=(max_white+min_white)/2)
+
+joint_more%>%na.omit()%>%
+  summarise(mean_black=mean(`Black,%`),
+            q_black=quantile(`Black,%`),
+            distinct_black=n_distinct(`Black,%`),
+            min_black=min(`Black,%`),
+            max_black=max(`Black,%`),
+            maxmin_black=(max_black+min_black)/2)
+
+
+```
+Discussion: For all tables that summarize without "group_by" provide mean, quantile,n_distinct, minimum, maximum variable values of the state itself because IDs in the dataset are all distinct (no repeating ones). 
+
+```{R}
+# your wrangling code 4
+joint_more%>%group_by(State)%>%summarize(count1=n())
+joint_more%>%group_by(Region)%>%summarise(count2=n())
+```
+Discussion:
+Accordingly, we could find that there are 51 states in the dataset and each state appears once. In addition, there are 12 states in midwest region, 8 states in northeast region, 17 states in south region and 14 states in west region.
 
 
 #### Visualizing
 
 ```{R}
 # your plot 1
+ggplot(joint_more, aes(`Education Rate, %`,`Divorce Rate,%`)) +
+  ylim(0, 20)+ geom_density2d_filled() + 
+    geom_jitter(color="white",size =3)+
+    ggtitle(" Education V.S Divorce")
+
 ```
 
-Your discussion of plot 1
+Discussion of plot 1:
+In this graph, x-axis represents "education rate" and y-axis represents "divorce rate".According to the graph, we see the points spread around and there is no obvious relationship between education and divorce generally. But comparatively, more dots tend to concentrate in the yellow area. It means that comparatively more stats in U.S with divorce rates range 7%-8% and education rate range 90%-92%.
 
 ```{R}
 # your plot 2
+ggplot(joint_more, aes(`Housing Price,$`, `Divorce Rate,%`, color= joint_more$Region,shape=joint_more$Region)) + 
+    geom_point() + ylim(0, 20)+
+    labs(y = "Divorce Rate(%)", x = "Home Price($)") +
+    geom_smooth(se = FALSE,  method = "lm")+
+   ggtitle(" Housing Price V.S Divorce")
+    
 ```
 
-Your discussion of plot 2
+Discussion of plot 2:
+In this graph, x-axis represents housing price at state level and y-axis denotes divorce rate. The same color means the same region, and we could grab the trend between divorce rate and home price for each region: lower housing price, higher divorce rate. 
+
 
 ```{R}
 # your plot 3
+ggplot(joint_more, aes( `Region`,`Divorce Rate,%`)) +
+  geom_point(aes(color = State)) +
+  ylim(0, 25)+
+  labs(y = "Divorce Rate", x = "Region Part") + 
+  geom_point(aes(y = joint_more$`Divorce Rate,%`, color = State, shape = Region, size = 4), 
+  stat = "summary", fun = mean) +
+  stat_summary(fun = "mean", colour = "red",  geom = "point")+
+   ggtitle("Region V.S Divorce")
+
 ```
 
-Your discussion of plot 3
+Discussion of plot 3:
+In this graph, x-axis represents region and y-axis represents regions. According to the graph, we could see that south region experienced higher divorce rates and mortheast region experienced lower divorce rates in general. Moreover, the divorce rates for states in midwest region is diverse while that for states in west region is most concentrate.
+
 
 #### Concluding Remarks
-
-If any!
-
+In general, we can conclude that the divorce rate is somehow related to the regions and housing price. For regions, we could guess that may because of different policies of marriage for different states or other factors. For housing price, we could summarize that higher housing price, lower divorce rates. And this is the result that I did not expected beforeq.
 
 
-
+```{R, echo=F}
+```
